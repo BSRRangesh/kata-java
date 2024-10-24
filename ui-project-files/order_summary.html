@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Details</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .order {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            padding: 20px;
+            max-width: 600px;
+        }
+        .order h2 {
+            color: #007BFF;
+            margin-bottom: 10px;
+        }
+        .order p {
+            color: #555;
+            margin: 5px 0;
+        }
+        .order-details {
+            margin-top: 15px;
+        }
+        .order-details h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .order-details ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .order-details li {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px 0;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Order Details</h1>
+    <div id="ordersContainer"></div>
+
+    <div style="text-align: center; margin-top: 20px;">
+        <button onclick="window.location.href='home.html'" style="padding: 10px 20px; font-size: 16px; background-color: #007BFF; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Go to Home
+        </button>
+    </div>
+
+    <script>
+        async function loadOrders() {
+            try {
+                
+                const encodedCredentials = sessionStorage.getItem('encodedCredentials');
+                const response = await fetch('http://localhost:8080/orders/', {
+                    headers: {
+                        'Authorization': `Basic ${encodedCredentials}`
+                    }
+                });
+                const orders = await response.json();
+
+                const ordersContainer = document.getElementById('ordersContainer');
+                ordersContainer.innerHTML = '';
+
+                orders.forEach(order => {
+                    const orderDiv = document.createElement('div');
+                    orderDiv.className = 'order';
+                    orderDiv.innerHTML = `
+                        <h2>Order ID: ${order.orderId}</h2>
+                        <p style="float: right; color: ${order.status === 'PLACED' ? 'green' : 'red'};">${order.status}</p>
+                        <p>Total Amount: $${order.totalAmount}</p>
+                        <div class="order-details">
+                            <h3>Order Details:</h3>
+                            <ul>
+                                ${order.orderDetails.map(detail => `
+                                    <li>Book ID: ${detail.bookId}, Quantity: ${detail.quantity}</li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    `;
+                    ordersContainer.appendChild(orderDiv);
+                });
+            } catch (error) {
+                console.error('Error fetching orders:', error);
+                alert('An error occurred while fetching orders');
+            }
+        }
+
+        window.onload = loadOrders;
+    </script>
+</body>
+</html>

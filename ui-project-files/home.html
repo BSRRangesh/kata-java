@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>Book Store</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .book-list {
+            list-style-type: none;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .book-item {
+            border: 1px solid #ccc;
+            margin: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .book-details {
+            display: flex;
+            justify-content: space-between;
+            max-width: 25vw;
+            /* 1/4 of the screen width */
+        }
+
+        .book-info {
+            flex: 1;
+        }
+
+        .book-action {
+            display: flex;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+        }
+
+        .cart-list {
+            list-style-type: none;
+            padding: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .cart-item {
+            border: 1px solid #ccc;
+            margin: 10px;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .cart-details {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .cart-info {
+            flex: 1;
+        }
+
+        .empty-cart-message {
+            display: none;
+            text-align: center;
+            font-size: 1.6em;
+            color: #888;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 87%;">
+        <h1 style="text-align: center; flex-grow: 1;">Book Store</h1>
+        <div style="position: relative;"></div>
+        <button id="shoppingButton" class="btn btn-primary" style="width: 50px; height: 50px; margin-right: 10px;">
+            <i class="fa fa-shopping-bag"></i>
+        </button>
+        <button id="cartButton" class="btn btn-primary" style="width: 50px; height: 50px; margin-right: 10px;">
+            <i class="fa fa-cart-plus"></i>
+        </button>
+        <button id="logoutButton" class="btn btn-primary" style="width: 50px; height: 50px;">
+            <i class="fa fa-sign-out"></i>
+        </button>
+
+    </div>
+    </div>
+    <div style="display: flex; justify-content: center;">
+        <ul id="bookList" class="book-list"></ul>
+        <ul id="cartList" class="cart-list" style="display: none;">
+        </ul>
+
+        <ul id="place-order-btn" style="display: none">
+            <div class="order-action" style="text-align-last: right;">
+                <button id="placeOrderButton" class="btn btn-primary" style="margin-right: 10px;">Place Order</button>
+            </div>
+        </ul>
+        <li id="emptyCartMessage" class="empty-cart-message"
+            style="width: 50%; margin: 0 auto; display: none; text-align: center;">Your cart is currently empty. Start
+            adding some books!</li>
+
+
+
+    </div>
+
+    <script>
+
+        document.getElementById('shoppingButton').addEventListener('click', () => {
+            window.location.href = 'home.html';
+        });
+
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            window.location.href = 'login.html';
+        });
+
+        document.getElementById('cartButton').addEventListener('click', async () => {
+            try {
+                const encodedCredentials = sessionStorage.getItem('encodedCredentials');
+                const userName = sessionStorage.getItem('userName');
+                const response = await fetch(`http://localhost:8080/cart/${userName}`, {
+                    headers: {
+                        'Authorization': `Basic ${encodedCredentials}`
+                    }
+                });
+                const cart = await response.json();
+                console.log('Cart:', cart);
+
+                const cartList = document.getElementById('cartList');
+
+                // Clear existing cart items
+                cartList.innerHTML = '';
+
+                if (cart.length === 0) {
+                    emptyCartMessage.style.display = 'block';
+                    cartList.style.display = 'none';
+                    document.getElementById('place-order-btn').style.display = 'none';
+                } else {
+                    emptyCartMessage.style.display = 'none';
+                    // Add new cart items
+                    cart.forEach(item => {
+                        const cartItem = document.createElement('li');
+                        cartItem.style.listStyleType = 'none';
+                        cartItem.className = 'cart-item';
+                        cartItem.innerHTML = `
+                        <div class="cart-details" style="display: flex; justify-content: center; align-items: center; list-style-type: none; margin-bottom: 20px;">
+                            <div class="cart-info" style="text-align: center; margin-right: 20px;">
+                                <h2>${item.title}</h2>
+                            </div>
+                            <div class="cart-action" style="display: flex; align-items: center;">
+                                <label for="quantity-${item.bookId}" style="margin-right: 10px;">Quantity:</label>
+                                <select id="quantity-${item.bookId}" class="quantity-dropdown" onchange="updateCart(${item.bookId}, this.value)" style="margin-right: 10px;">
+                                    ${[...Array(10).keys()].map(i => `<option value="${i + 1}" ${i + 1 === item.quantity ? 'selected' : ''}>${i + 1}</option>`).join('')}
+                                </select>
+                                <button class="btn btn-danger" style="margin-left: 10px;" onclick="removeFromCart(${item.bookId})">Remove</button>
+                            </div>
+                        </div>
+                    `;
+                        cartList.appendChild(cartItem);
+                    });
+                    document.getElementById('place-order-btn').style.display = 'flex';
+                }
+
+                document.getElementById('bookList').style.display = 'none';                
+                cartList.style.display = 'block';
+
+
+
+            } catch (error) {
+                console.error('Error fetching cart:', error);
+                alert('An error occurred while fetching cart items');
+            }
+        });
+
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const encodedCredentials = sessionStorage.getItem('encodedCredentials');
+                const response = await fetch('http://localhost:8080/books/', {
+                    headers: {
+                        'Authorization': `Basic ${encodedCredentials}`
+                    }
+                });
+                const books = await response.json();
+
+                const bookList = document.getElementById('bookList');
+                books.forEach(book => {
+                    const bookItem = document.createElement('li');
+                    bookItem.className = 'book-item';
+                    bookItem.innerHTML = `
+                        <div class="book-details">
+                            <div class="book-info">
+                                <h2>${book.title}</h2>
+                                <p><strong>Author:</strong> ${book.author}</p>
+                                <p><strong>Price:</strong> $${book.price}</p>
+                                <p><strong>Published Date:</strong> ${new Date(book.publishedDate).toLocaleDateString()}</p>
+                                <p>${book.description}</p>
+                            </div>
+                            <div class="book-action">
+                               <button class="btn btn-primary" onclick="addToCart(${book.bookId}, '${book.title}')">Add to Cart</button>
+                            </div>
+                        </div>
+                        
+                    `;
+                    bookList.appendChild(bookItem);
+                });
+            } catch (error) {
+                console.error('Error fetching books:', error);
+                alert('An error occurred while fetching books');
+            }
+        });
+
+        async function addToCart(bookId, title) {
+            try {
+                const encodedCredentials = sessionStorage.getItem('encodedCredentials');
+                const userId = sessionStorage.getItem('userName');
+                const payload = {
+                    bookId: bookId,
+                    title: title,
+                    quantity: 1,
+                    userId: userId
+                };
+
+                const response = await fetch('http://localhost:8080/cart/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Basic ${encodedCredentials}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert('Book added to cart successfully');
+                } else {
+                    alert('Failed to add book to cart');
+                }
+            } catch (error) {
+                console.error('Error adding book to cart:', error);
+                alert('An error occurred while adding book to cart');
+            }
+        }
+
+        async function updateCart(bookId, quantity) {
+            try {
+                const encodedCredentials = sessionStorage.getItem('encodedCredentials');
+                const userId = sessionStorage.getItem('userName');
+                const payload = {
+                    bookId: bookId,
+                    quantity: quantity,
+                    userId: userId
+                };
+
+                const response = await fetch('http://localhost:8080/cart/', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Basic ${encodedCredentials}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert('Cart updated successfully');
+                } else {
+                    alert('Failed to update cart');
+                }
+            } catch (error) {
+                console.error('Error updating cart:', error);
+                alert('An error occurred while updating cart');
+            }
+        }
+
+        async function removeFromCart(bookId) {
+            try {
+                const encodedCredentials = sessionStorage.getItem('encodedCredentials');
+                const userId = sessionStorage.getItem('userName');
+
+                const response = await fetch(`http://localhost:8080/cart/?userId=${userId}&bookId=${bookId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Basic ${encodedCredentials}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Book removed from cart successfully');
+                    document.getElementById(`quantity-${bookId}`).closest('li').remove();
+                    const cartList = document.getElementById('cartList');
+                    if (cartList.children.length === 0) {
+                        document.getElementById('emptyCartMessage').style.display = 'block';
+                        document.getElementById('place-order-btn').style.display = 'none';
+                    }
+                } else {
+                    alert('Failed to remove book from cart');
+                }
+            } catch (error) {
+                console.error('Error removing book from cart:', error);
+                alert('An error occurred while removing book from cart');
+            }
+        }
+
+        document.getElementById('placeOrderButton').addEventListener('click', async () => {
+            try {
+                const encodedCredentials = sessionStorage.getItem('encodedCredentials');
+                const userId = sessionStorage.getItem('userName');
+                const cartList = document.getElementById('cartList');
+                const orderDetails = Array.from(cartList.children).map(cartItem => {
+                    const bookId = cartItem.querySelector('.quantity-dropdown').id.split('-')[1];
+                    const quantity = cartItem.querySelector('.quantity-dropdown').value;
+                    return { bookId: parseInt(bookId), quantity: parseInt(quantity) };
+                });
+
+                const payload = {
+                    userId: userId,
+                    orderDetails: orderDetails
+                };
+
+                const response = await fetch('http://localhost:8080/orders/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Basic ${encodedCredentials}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert('Order placed successfully');
+                    // Optionally, clear the cart and update the UI
+                    cartList.innerHTML = '';
+
+                    const userId = sessionStorage.getItem('userName');
+                    await fetch(`http://localhost:8080/cart/${userId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Basic ${encodedCredentials}`
+                        }
+                    });
+
+                    window.location.href = 'order_summary.html';
+                } else {
+                    alert('Failed to place order');
+                }
+            } catch (error) {
+                console.error('Error placing order:', error);
+                alert('An error occurred while placing the order');
+            }
+        });
+    </script>
+</body>
+
+</html>
