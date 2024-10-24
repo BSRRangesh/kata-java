@@ -1,7 +1,7 @@
 There are two modules in the Repository:
 
 1. **book-store** --> Java Spring boot project for backend processing
-2. **UI-project-files**  --> UI component of BookStore
+2. **ui-project-files**  --> UI component of BookStore
 
 
 Steps to setup **book-store**:
@@ -13,6 +13,7 @@ Steps to setup **book-store**:
   4. Run the application:
       **mvn spring-boot:run**
 
+ H2 in memory database is used store records in the database.
  src/main/resources/data.sql - Has the initial setup to create few entries into BOOKS Table and same will be used to display in UI.
 
 
